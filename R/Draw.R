@@ -19,7 +19,7 @@
 #' @export
 #' @references
 #' \enumerate{
-#' \item Bostanabad, R., Kearney, T., Tao, S., Apley, D. W. & Chen, W. Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, doi:10.1002/nme.5751.
+#' \item Bostanabad, R., Kearney, T., Tao, S. Y., Apley, D. W. & Chen, W. (2018) Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, 114, 501-516.
 #' \item M. Plumlee, D.W. Apley (2016). Lifted Brownian kriging models, Technometrics.
 #' }
 #' @seealso
@@ -29,7 +29,7 @@
 #' # see the examples in the fitting function.
 
 Draw <-  function(Model, Plot_wrt, LB = NULL, UB = NULL, Values = NULL,
-                Response_ID = NULL, res = 15, X1Label = NULL, X2Label = NULL,
+                Response_ID = NULL, res = 20, X1Label = NULL, X2Label = NULL,
                 YLabel = NULL, Title = NULL, PI95 = NULL){
 
   if (class(Model) != "GPM"){
@@ -161,8 +161,8 @@ Draw <-  function(Model, Plot_wrt, LB = NULL, UB = NULL, Values = NULL,
     y <- Y$YF[, Response_ID]
     graphics::plot(x=x1, y=y, type = "l", lty = 1, col = "blue", main = Title, xlab = X1Label, ylab = YLabel)
     if (PI95 == 1){
-      yp <- y + 1.96*Y$MSE[, Response_ID];
-      ym <- y - 1.96*Y$MSE[, Response_ID];
+      yp <- y + 1.96*sqrt(Y$MSE[, Response_ID]);
+      ym <- y - 1.96*sqrt(Y$MSE[, Response_ID]);
       graphics::lines(x1, yp, type = "l", lty = 2, col = "red")
       graphics::lines(x1, ym, type = "l", lty = 2, col = "red")
       graphics::legend(x= "topright", legend = c('Prediction', '95% PI'), col = c("blue", "red"),
@@ -182,8 +182,8 @@ Draw <-  function(Model, Plot_wrt, LB = NULL, UB = NULL, Values = NULL,
       }
       Y <- Predict(input, Model, PI95)
       y <- matrix(Y$YF[, Response_ID], res^2, 1)
-      yp <- y + matrix(Y$MSE[, Response_ID], res^2, 1)
-      ym <- y - matrix(Y$MSE[, Response_ID], res^2, 1)
+      yp <- y + matrix(sqrt(Y$MSE[, Response_ID]), res^2, 1)
+      ym <- y - matrix(sqrt(Y$MSE[, Response_ID]), res^2, 1)
       g$z[1:res^2] <- y
       g$z[(res^2+1):(2*res^2)] <- yp
       g$z[(2*res^2+1):(3*res^2)] <- ym

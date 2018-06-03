@@ -50,7 +50,7 @@ Fits a Gaussian process (GP) to a set of simulation data as described in \code{r
 # 1D example: Fit a model (with default settings) and evaluate the performance
 # by computing the root mean squared error (RMSE) in prediction.
 library(lhs)
-X <- 5*maximinLHS(9, 1)
+X <- 5*maximinLHS(10, 1)
 Y <- 2*sin(2*X) + log(X+1)
 M <- Fit(X, Y)
 XF <- matrix(seq(0, 5, length.out = 100), 100, 1)
@@ -59,37 +59,37 @@ RMSE <- sqrt(mean((YF$YF - (2*sin(2*XF) + log(XF+1)))^2))
 
 # 1D example: Fit a model, evaluate the performance, and plot the response
 # along with 95\% prediction interval
-X <- 10*maximinLHS(18, 1) - 5
-Y <- X*cos(X)
+X <- 10*maximinLHS(25, 1) - 5
+Y <- X*cos(pi*X)
 M <- Fit(X, Y)
-XF <- matrix(seq(-5, 5, length.out = 50), 50, 1)
+XF <- matrix(seq(-5, 5, length.out = 100), 100, 1)
 YF <- Predict(XF, M)
-RMSE <- sqrt(mean((YF$YF - (XF*cos(XF)))^2))
-Draw(M, 1, res = 15)
+RMSE <- sqrt(mean((YF$YF - (XF*cos(pi*XF)))^2))
+Draw(M, 1, res = 100)
 
 \dontrun{
 # 2D example: Fit a model, evaluate the performance, and plot the response
 # surface along with 95\% prediction interval
-X <- 2*maximinLHS(10, 2) - 1
+X <- 2*maximinLHS(20, 2) - 1
 Y <- X[, 1]^2 + X[, 2]^2
 M <- Fit(X, Y, CorrType = "PE")
 XF <- 2*maximinLHS(100, 2) - 1
 YF <- Predict(XF, M)
 RMSE <- sqrt(mean((YF$YF - (XF[, 1]^2 + XF[, 2]^2))^2))
 library(lattice)
-Draw(M, c(1, 1), res = 15, PI95=1)
+Draw(M, c(1, 1), res = 20, PI95=1)
 
 # 2D example: Plot the previous model wrt X1 in the [-2, 2]
 # interval with X2=1
-Draw(M, c(1, 0), LB = -2, UB = 2, res = 15, PI95=1)
+Draw(M, c(1, 0), LB = -2, UB = 2, res = 20, PI95=1)
 
 # 3D example: Compare the performance of Gaussian ("G") and lifted Browninan
 # with Gamma=1 ("LBG")
-X <- 2*maximinLHS(30, 3) - 1
+X <- 2*maximinLHS(50, 3) - 1
 Y <- cos(X[, 1]^2) + 2*sin(X[, 2]^2) + X[, 3]^2
 M_G <- Fit(X, Y)
 M_LBG <- Fit(X, Y, CorrType = "LBG")
-XF <- 2*maximinLHS(50, 3) - 1
+XF <- 2*maximinLHS(1000, 3) - 1
 YF_G <- Predict(XF, M_G)
 YF_LBG <- Predict(XF, M_LBG)
 RMSE_G <- sqrt(mean((YF_G$YF - (cos(XF[, 1]^2) + 2*sin(XF[, 2]^2) + XF[, 3]^2))^2))
@@ -101,7 +101,7 @@ Draw(M_G, c(1, 1, 0), PI95 = 0, Values = 0, X1Label = 'Input 1', X2Label = 'Inpu
 }
 \references{
 \enumerate{
-\item Bostanabad, R., Kearney, T., Tao, S., Apley, D. W. & Chen, W. Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, doi:10.1002/nme.5751.
+\item Bostanabad, R., Kearney, T., Tao, S. Y., Apley, D. W. & Chen, W. (2018) Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, 114, 501-516.
 \item M. Plumlee, D.W. Apley (2016). Lifted Brownian kriging models, Technometrics.
 }
 }

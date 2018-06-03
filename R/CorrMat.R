@@ -9,7 +9,7 @@
 #' @note This function is \strong{NOT} exported once the GPM package is loaded.
 #' @references
 #' \enumerate{
-#' \item Bostanabad, R., Kearney, T., Tao, S., Apley, D. W. & Chen, W. Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, doi:10.1002/nme.5751.
+#' \item Bostanabad, R., Kearney, T., Tao, S. Y., Apley, D. W. & Chen, W. (2018) Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, 114, 501-516.
 #' \item M. Plumlee, D.W. Apley (2016). Lifted Brownian kriging models, Technometrics.
 #' }
 #' @seealso
