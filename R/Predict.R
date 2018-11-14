@@ -6,11 +6,11 @@
 #' @param MSE_on Flag (a scalar) indicating whether the uncertainty (i.e., mean squared error \code{MSE}) associated with prediction of the response(s) should be calculated. Set to a non-zero value to calculate \code{MSE}.
 #' @param YgF_on Flag (a scalar) indicating whether the gradient(s) of the response(s) are desired. Set to a non-zero value to calculate the gradient(s). See \code{note} below.
 #' @param grad_dim A binary vector of length \code{ncol(XF)}. The gradient of the response(s) will be calculated along the dimensions where the corresponding element of \code{grad_dim} is \code{1}. \code{grad_dim} is ignored if \code{YgF_on==0}.
-#'
+#' 
 #' @return Output A list containing the following components:
 #' \itemize{
-#' \item{\code{YF}} {A matrix with \code{n} rows (the number of prediction points) and \code{q} columns (the number of responses).}
-#' \item{\code{MSE}} {A matrix with \code{n} rows and \code{q} columns where each element represents the prediction uncertainty (i.e., the expected value of the squared difference between the prediction and the true response) associated with the corresponding element in \code{YF}.}
+#' \item{\code{YF}} {A matrix with \code{n} rows (the number of prediction points) and \code{dy} columns (the number of responses).}
+#' \item{\code{MSE}} {A matrix with \code{n} rows and \code{dy} columns where each element represents the prediction uncertainty (i.e., the expected value of the squared difference between the prediction and the true response) associated with the corresponding element in \code{YF}.}
 #' \item{\code{YgF}} {An array of size \code{n} by \code{sum{grad_dim}} by \code{p}.}
 #' }
 #'
@@ -22,7 +22,7 @@
 #' }
 #' @references
 #' \enumerate{
-#' \item Bostanabad, R., Kearney, T., Tao, S. Y., Apley, D. W. & Chen, W. (2018) Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, 114, 501-516.
+#' \item Bostanabad, R., Kearney, T., Tao, S., Apley, D. W. & Chen, W. Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, doi:10.1002/nme.5751.
 #' \item M. Plumlee, D.W. Apley (2016). Lifted Brownian kriging models, Technometrics.
 #' }
 #' @seealso
@@ -32,18 +32,16 @@
 #' # see the examples in the fitting function.
 
 Predict <-  function(XF, Model, MSE_on = 0, YgF_on = 0, grad_dim = rep(1, ncol(XF))){
-  #if (is.GPM(Model) == FALSE){
-  #  stop('The second input should be a model of class GMP built by Fit.')
-  #}
+
   XN = Model$Data$XN
-  p = ncol(XN)
+  dx = ncol(XN)
   MSE = NULL
   YgF = NULL
-  if (ncol(XF) != p){
+  if (ncol(XF) != dx){
     stop('The dimension of XF is not correct!')
   }
   if (class(Model) != "GPM"){
-    stop('The 2nd input should be a model of class GMP built by Fit.')
+    stop('The 2nd input should be a model of class GPM_v2 built by Fit.')
   }
   if (length(MSE_on)!=1 || length(YgF_on)!=1){
     stop('MSE_on and YgF_on should be scalar flags. Set them to 1 to turn them "on".')
@@ -51,12 +49,13 @@ Predict <-  function(XF, Model, MSE_on = 0, YgF_on = 0, grad_dim = rep(1, ncol(X
   CorrType = Model$CovFun$CorrType
   Ymin = Model$Data$Ymin
   Yrange = Model$Data$Yrange
-  k = Model$Data$k
+  n = Model$Data$n
   Xmin = Model$Data$Xmin
   Xmax = Model$Data$Xmax
-  q = Model$Data$q
+  dy = Model$Data$dy
   Fn = Model$Details$Fn
   L = Model$Details$L
+  Nug_opt <- Model$Details$Nug_opt
 
   m = nrow(XF)
   Fm = matrix(1, m, 1)
@@ -71,43 +70,44 @@ Predict <-  function(XF, Model, MSE_on = 0, YgF_on = 0, grad_dim = rep(1, ncol(X
     FnTRinvFn = Model$CovFun$Parameters$FnTRinvFn
     Sigma2 = Model$CovFun$Parameters$Sigma2
     if (CorrType == 'PE'){
-      Rxf = CorrMat(XN, XFN, CorrType, c(Theta, Power))
+      Rxf = CorrMat_Vec(XN, XFN, CorrType, c(Theta, Power))
       if (MSE_on){
-        Rf = CorrMat(XFN, XFN, CorrType, c(Theta, Power))
+        Rf = CorrMat_Sym(XFN, CorrType, c(Theta, Power))
       }
     } else {
-      Rxf = CorrMat(XN, XFN, CorrType, Theta)
+      Rxf = CorrMat_Vec(XN, XFN, CorrType, Theta)
       if (MSE_on){
-        Rf = CorrMat(XFN, XFN, CorrType, Theta)
+        Rf = CorrMat_Sym(XFN, CorrType, Theta)
       }
     }
     YFN = Fm%*%B + t(Rxf)%*%(Rinv_YN - Rinv_Fn%*%B)
     YF = t(t(YFN)*Yrange + Ymin)
     if (MSE_on){
-      MSE = Rf - t(Rxf)%*%(solve(t(L), solve(L, Rxf))) +
-        t(t(Fm) - t(Fn)%*%(solve(t(L), solve(L, Rxf))))%*%
-        (t(Fm) - t(Fn)%*%(solve(t(L), solve(L, Rxf))))/FnTRinvFn
+      MSE = Rf - t(Rxf)%*%(CppSolve(t(L), CppSolve(L, Rxf))) +
+        t(t(Fm) - t(Fn)%*%(CppSolve(t(L), CppSolve(L, Rxf))))%*%
+        (t(Fm) - t(Fn)%*%(CppSolve(t(L), CppSolve(L, Rxf))))/FnTRinvFn + 
+        diag(Nug_opt, m, m, names = FALSE)
       MSE = diag(kronecker(Sigma2, MSE))
-      MSE = t(matrix(MSE, q, m)*Yrange^2)
+      MSE = t(matrix(MSE, dy, m)*Yrange^2)
     }
     if (YgF_on){
       if (Power != 2){
         stop('The gradient can be calculated only if Power == 2.')
       }
       if (!is.vector(grad_dim)) grad_dim = as.vector(grad_dim)
-      if (length(grad_dim) != p) {
-        stop(paste('grad_dim should be a vector of size (1, ', toString(p), ').'))
+      if (length(grad_dim) != dx) {
+        stop(paste('grad_dim should be a vector of size (1, ', toString(dx), ').'))
       }
       if (any(grad_dim<0) || any(grad_dim>1) || any((grad_dim>0)*(grad_dim<1))){
         stop('The elements of grad_dim should be either 1 or 0.')
       }
-      YgF = array(0, c(m, sum(grad_dim), q))
+      YgF = array(0, c(m, sum(grad_dim), dy))
       jj = 1
-      for (d in 1:p){
+      for (d in 1:dx){
         if (grad_dim[i] > 0){
           XFNd = XFN[, d]
           XNd = XN[, d]
-          RxfD = (Power*10^Theta[d])/(Xmax[d] - Xmin[d])*(replicate(m, XNd)-t(replicate(k, XFNd)))*Rxf
+          RxfD = (Power*10^Theta[d])/(Xmax[d] - Xmin[d])*(replicate(m, XNd)-t(replicate(n, XFNd)))*Rxf
           YFN_der = t(RxfD)%*%(Rinv_YN - Rinv_Fn%*%B)
           YgF[, jj, ] = t(t(YFN_der)*Yrange)
           jj = jj + 1
@@ -124,42 +124,43 @@ Predict <-  function(XF, Model, MSE_on = 0, YgF_on = 0, grad_dim = rep(1, ncol(X
     Beta = Model$CovFun$Parameters$Beta
     Gamma = Model$CovFun$Parameters$Gamma
     if (CorrType == 'LB'){
-      Rxf = CorrMat(XN, XFN, CorrType, c(A, Beta, Gamma))
+      Rxf = CorrMat_Vec(XN, XFN, CorrType, c(A, Beta, Gamma))
       if (MSE_on){
-        Rf = CorrMat(XFN, XFN, CorrType, c(A, Beta, Gamma))
+        Rf = CorrMat_Sym(XFN, CorrType, c(A, Beta, Gamma))
       }
     } else {
-      Rxf = CorrMat(XN, XFN, CorrType, c(A, Beta))
+      Rxf = CorrMat_Vec(XN, XFN, CorrType, c(A, Beta))
       if (MSE_on){
-        Rf = CorrMat(XFN, XFN, CorrType, c(A, Beta))
+        Rf = CorrMat_Sym(XFN, CorrType, c(A, Beta))
       }
     }
     YFN = Fm%*%YN0 + t(Rxf)%*%Rinv_YN
     YF = t(t(YFN)*Yrange + Ymin)
     if (MSE_on){
-      MSE = Rf - t(Rxf)%*%(solve(t(L), solve(L, Rxf)))
+      MSE = Rf - t(Rxf)%*%(CppSolve(t(L), CppSolve(L, Rxf))) + 
+        diag(Nug_opt, m, m, names = FALSE)
       MSE = diag(kronecker(Alpha, MSE))
-      MSE = t(matrix(MSE, q, m)*Yrange^2)
+      MSE = t(matrix(MSE, dy, m)*Yrange^2)
     }
     if (YgF_on){
       A = 10^A - 1
       if (Gamma != 1){
         stop('The gradient can be calculated only if Gamma == 1.')
       }
-      YgF = array(0, c(m, sum(grad_dim), q))
+      YgF = array(0, c(m, sum(grad_dim), dy))
       jj = 1
-      for (d in 1:p){
+      for (d in 1:dx){
         if (grad_dim[d] > 0){
           XFNd = XFN[, d]
           XNd = XN[, d]
-          RxfD = matrix(0, k, m)
-          if (k >= m){
+          RxfD = matrix(0, n, m)
+          if (n >= m){
             for (i in 1:m){
               RxfD[, i] = 2*A[d]*Beta/(Xmax[d] - Xmin[d])*(XFNd[i]*(1 + sum(XFN[i, ]^2*A))^(Beta - 1) -
                           (XFNd[i] - XNd)*(1 + colSums((XFN[i, ] - t(XN))^2*A))^(Beta - 1))
             }
           } else{
-            for (i in 1:k){
+            for (i in 1:n){
               RxfD[i, ] = 2*A[d]*Beta/(Xmax[d] - Xmin[d])*(XFNd*(1 + colSums(t(XFN^2)*A))^(Beta - 1) -
                           (XFNd - XNd[i])*(1 + colSums((t(XFN) - XN[i, ])^2*A))^(Beta - 1))
             }

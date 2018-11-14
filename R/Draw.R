@@ -2,9 +2,9 @@
 #' @description Plots the predicted response along with the assocaited uncertainty via the GP model fitted by \code{\link[GPM]{Fit}}. Accepts multi-input and multi-output models. See \code{Arguments} for more details on the options.
 #'
 #' @param Model The GP model fitted by \code{\link[GPM]{Fit}}.
-#' @param Plot_wrt A binary vector of length \code{p} where \code{p} is the dimension of the inputs in \code{Model}. A maximum (minimum) of \code{2} (\code{1}) elements can be \code{1}. The elemenets set to \code{1}, would correspond to the plotting axes.
+#' @param Plot_wrt A binary vector of length \code{dx} where \code{dx} is the dimension of the inputs in \code{Model}. A maximum (minimum) of \code{2} (\code{1}) elements can be \code{1}. The elemenets set to \code{1}, would correspond to the plotting axes.
 #' @param LB,UB Vectors of length \code{sum(Plot_wrt)} indicating the lower and upper bounds used for plotting. The first (second) element corresponds to the first (second) non-zero element of \code{Plot_wrt}.
-#' @param Values A vector of length \code{p-sum(Plot_wrt)}. The values are assigned to the variables NOT used in plotting and correspond to the zeros in \code{Plot_wrt}.
+#' @param Values A vector of length \code{dx-sum(Plot_wrt)}. The values are assigned to the variables NOT used in plotting and correspond to the zeros in \code{Plot_wrt}.
 #' @param Response_ID A positive integer indicating the response that should be plotted if \code{Model} is multi-response.
 #' @param res A positive integer indicating the number of points used in plotting. Higher values will result into smoother plots.
 #' @param X1Label A string for the label of axis \code{1}.
@@ -19,7 +19,7 @@
 #' @export
 #' @references
 #' \enumerate{
-#' \item Bostanabad, R., Kearney, T., Tao, S. Y., Apley, D. W. & Chen, W. (2018) Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, 114, 501-516.
+#' \item Bostanabad, R., Kearney, T., Tao, S., Apley, D. W. & Chen, W. Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, doi:10.1002/nme.5751.
 #' \item M. Plumlee, D.W. Apley (2016). Lifted Brownian kriging models, Technometrics.
 #' }
 #' @seealso
@@ -29,18 +29,18 @@
 #' # see the examples in the fitting function.
 
 Draw <-  function(Model, Plot_wrt, LB = NULL, UB = NULL, Values = NULL,
-                Response_ID = NULL, res = 20, X1Label = NULL, X2Label = NULL,
+                Response_ID = NULL, res = 15, X1Label = NULL, X2Label = NULL,
                 YLabel = NULL, Title = NULL, PI95 = NULL){
 
   if (class(Model) != "GPM"){
     stop('The 1st input should be a model of class GMP built by Fit.')
   }
-  p <- ncol(Model$Data$XN)
-  q <- ncol(Model$Data$YN)
+  dx <- ncol(Model$Data$XN)
+  dy <- ncol(Model$Data$YN)
 
   if (!is.vector(Plot_wrt)) Plot_wrt <- as.vector(Plot_wrt)
-  if (length(Plot_wrt) != p){
-    stop(paste('     The size of Plot_wrt is incorrect! It should be', toString(p)))
+  if (length(Plot_wrt) != dx){
+    stop(paste('     The size of Plot_wrt is incorrect! It should be', toString(dx)))
   } else if (any(Plot_wrt>1) || any(Plot_wrt<0) || any((Plot_wrt<1)*(Plot_wrt>0))){
     stop('The elements of Plot_wrt should be either 1 or 0.');
   } else if (sum(Plot_wrt)>2 || sum(Plot_wrt)<1){
@@ -68,13 +68,13 @@ Draw <-  function(Model, Plot_wrt, LB = NULL, UB = NULL, Values = NULL,
     stop('The elements of LB must be smaller than the corresponding elements of UB')
   }
   ## settings for the fixed variables
-  if ((p - SorL)>0){
+  if ((dx - SorL)>0){
     if (is.null(Values)){
       Values <- (Model$Data$Xmin[NotAxes] + Model$Data$Xmax[NotAxes])/2
       print('The fixed inputs, are set to the default values.')
     }
-    if (length(Values)!=(p - SorL)){
-      stop(paste('The size of Values should be [1, ', toString(p - SorL), '].'))
+    if (length(Values)!=(dx - SorL)){
+      stop(paste('The size of Values should be [1, ', toString(dx - SorL), '].'))
     }
   } else {
     if (!is.null(Values)){
@@ -86,17 +86,17 @@ Draw <-  function(Model, Plot_wrt, LB = NULL, UB = NULL, Values = NULL,
     warning('(Some of) The values assigned to the fixed variables are beyond the region where the model is fitted.')
   }
   ## Output ID, Resolution, axis labels, title, PI95
-  if (q>1){
+  if (dy>1){
     if (is.null(Response_ID)){
       Response_ID <- 1
       print('There is more than 1 output in the model. The 1st one is chosen for drawing.')
     } else {
       if (length(Response_ID) != 1){
-        stop(paste('Response_ID should be an integer between 1 and ', toString(q), '.'))
-      } else if (Response_ID>q || Response_ID<1){
-          stop(paste('Response_ID should be an integer between 1 and ', toString(q), '.'))
+        stop(paste('Response_ID should be an integer between 1 and ', toString(dy), '.'))
+      } else if (Response_ID>dy || Response_ID<1){
+          stop(paste('Response_ID should be an integer between 1 and ', toString(dy), '.'))
       } else if (round(Response_ID) != Response_ID){
-        stop(paste('Response_ID should be an integer between 1 and ', toString(q), '.'))
+        stop(paste('Response_ID should be an integer between 1 and ', toString(dy), '.'))
       }
     }
   } else {
@@ -152,19 +152,20 @@ Draw <-  function(Model, Plot_wrt, LB = NULL, UB = NULL, Values = NULL,
   ## draw
   if (SorL == 1){
     x1 <- as.matrix(seq(LB, UB, length.out = res), res, 1)
-    input <- matrix(0, res, p)
+    input <- matrix(0, res, dx)
     input[, Axes] <- x1
     if (!is.null(Values)){
       input[, NotAxes]<- t(replicate(res, Values))
     }
-    Y <- Predict(input, Model, PI95)
+    Y <- Predict(input, Model, MSE_on = PI95)
     y <- Y$YF[, Response_ID]
-    graphics::plot(x=x1, y=y, type = "l", lty = 1, col = "blue", main = Title, xlab = X1Label, ylab = YLabel)
+    graphics::plot(x=x1, y=y, type = "l", lty = 1, lwd = 2, col = "blue",
+                   main = Title, xlab = X1Label, ylab = YLabel)
     if (PI95 == 1){
       yp <- y + 1.96*sqrt(Y$MSE[, Response_ID]);
       ym <- y - 1.96*sqrt(Y$MSE[, Response_ID]);
-      graphics::lines(x1, yp, type = "l", lty = 2, col = "red")
-      graphics::lines(x1, ym, type = "l", lty = 2, col = "red")
+      graphics::lines(x1, yp, type = "l", lty = 2, lwd = 1, col = "red")
+      graphics::lines(x1, ym, type = "l", lty = 2, lwd = 1, col = "red")
       graphics::legend(x= "topright", legend = c('Prediction', '95% PI'), col = c("blue", "red"),
              lty = c(1, 2))
     } else {
@@ -175,7 +176,7 @@ Draw <-  function(Model, Plot_wrt, LB = NULL, UB = NULL, Values = NULL,
       x1 <- seq(LB[1], UB[2], length.out = res)
       x2 <- seq(LB[1], UB[2], length.out = res)
       g <- expand.grid(x = x1, y = x2, gr = 1:3)
-      input <- matrix(0, res^2, p)
+      input <- matrix(0, res^2, dx)
       input[, Axes] <- as.matrix(g[1:res^2, -3])
       if (!is.null(Values)){
         input[, NotAxes]<- t(replicate(res^2, Values))
@@ -199,7 +200,7 @@ Draw <-  function(Model, Plot_wrt, LB = NULL, UB = NULL, Values = NULL,
       x1 <- seq(LB[1], UB[2], length.out = res)
       x2 <- seq(LB[1], UB[2], length.out = res)
       g <- expand.grid(x = x1, y = x2)
-      input <- matrix(0, res^2, p)
+      input <- matrix(0, res^2, dx)
       input[, Axes] <- as.matrix(g)
       if (!is.null(Values)){
         input[, NotAxes]<- t(replicate(res^2, Values))

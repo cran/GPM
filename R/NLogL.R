@@ -7,9 +7,9 @@
 #' @param CorrType The correlation function of the GP model. Choices include \code{'G'} (default), \code{'PE'}, \code{'LBG'}, and \code{'LB'}. See the \code{references} for the details.
 #' @param MinEig The smallest eigen value that the correlation matrix is allowed to have, which in return determines the appraopriate nugget that should be added to the correlation matrix.
 #' @param Fn A matrix of \code{1}'s with \code{nrow(X)} rows and \code{1} column. See \code{reference 1}.
-#' @param k Number of observations, \code{nrow(X)}.
-#' @param q Number of responses, \code{ncol(Y)}.
-#'
+#' @param n Number of observations, \code{nrow(X)}.
+#' @param dy Number of responses, \code{ncol(Y)}.
+#' 
 #' @return nlogl The negative log-likelihood (excluding all the constant terms). See the \code{references}.
 #'
 #' @details \code{\link[GPM]{Fit}} calls this function with \emph{scaled} \code{X} and \code{Y}. That is, when the user fits a GP model by calling \code{Fit(X, Y)}, \code{X} and \code{Y} are mapped to the \code{[0, 1]} region and then passed to this function.
@@ -18,8 +18,8 @@
 #'
 #' @references
 #' \enumerate{
-#' \item Bostanabad, R., Kearney, T., Tao, S. Y., Apley, D. W. & Chen, W. (2018) Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, 114, 501-516.
-#' \item M. Plumlee, D.W. Apley (2016). Lifted Brownian kriging models, Technometrics.
+#' \item Bostanabad, R., Kearney, T., Tao, S., Apley, D. W. & Chen, W. Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, doi:10.1002/nme.5751.
+#' \item Plumlee, M. & Apley, D. W. (2017) Lifted Brownian kriging models. Technometrics, 59, 165-177.
 #' }
 #' @seealso
 #' \code{\link[GPM]{Fit}} to see how a GP model can be fitted to a training dataset.\cr
@@ -28,26 +28,35 @@
 #' @examples
 #' # see the examples in the fitting function.
 
-NLogL <-  function(Omega, X, Y, CorrType, MinEig, Fn, k, q){
+NLogL <-  function(Omega, X, Y, CorrType, MinEig, Fn, n, dy){
 
-R = CorrMat(X, X, CorrType, Omega)
-R <- (R + t(R))/2;
+R <- CorrMat_Sym(X, CorrType, Omega)
 
-Raw_MinEig = sort(eigen(R, symmetric = TRUE, only.values = TRUE)$values)[1]
+Raw_MinEig = Eigen(R) #sort(eigen(R, symmetric = TRUE, only.values = TRUE)$values)[1]
+#Raw_MinEig <- Reigens[1]
 if (Raw_MinEig < MinEig){
-  R = R + diag(x = 1, k, k)*(MinEig - Raw_MinEig)
+  R = R + diag(x = 1, n, n)*(MinEig - Raw_MinEig)
+  #Reigens <- Reigens + (MinEig - Raw_MinEig)
 }
 
-L = t(chol(R))
+L = LowerChol(R)
+#Rinv = InvSymPos(R)
 if (CorrType == 'PE' || CorrType=='G'){
-  FnTRinvFn = t(Fn)%*%solve(t(L), solve(L, Fn))
-  B = t(Fn)%*%solve(t(L), solve(L, Y))/FnTRinvFn[1]
+  FnTRinvFn = t(Fn)%*%CppSolve(t(L), CppSolve(L, Fn))
+  #FnTRinvFn = t(Fn)%*%(Rinv%*%Fn)
+  B = t(Fn)%*%CppSolve(t(L), CppSolve(L, Y))/FnTRinvFn[1]
+  #B = t(Fn)%*%(Rinv%*%Y)/FnTRinvFn[1]
   temp = Y - Fn%*%B
-  Sigma2 = t(temp)%*%solve(t(L), solve(L, temp))/k
-  nlogl = k*log(det(Sigma2)) + q*2*sum(log(diag(L)))
+  Sigma2 = t(temp)%*%CppSolve(t(L), CppSolve(L, temp))/n
+  #Sigma2 = t(temp)%*%(Rinv%*%temp)/n
+  nlogl = n*log(det(Sigma2)) + dy*2*sum(log(diag(L)))
+  #log(det(R)) == sum(log(Reigens))
+  #nlogl = n*log(det(Sigma2)) + dy*sum(log(Reigens))
 }else{
-  Alpha = t(Y)%*%solve(t(L), solve(L, Y))/k
-  nlogl = 2*(log(det(Alpha)) + q*2*sum(log(diag(L)))/k)
+  Alpha = t(Y)%*%CppSolve(t(L), CppSolve(L, Y))/n
+  #Alpha = t(Y)%*%(Rinv%*%Y)/n
+  nlogl = n*log(det(Alpha)) + dy*2*sum(log(diag(L)))
+  #nlogl = n*log(det(Alpha)) + dy*sum(log(Reigens))
 }
 
 return(nlogl)
