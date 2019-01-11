@@ -2,8 +2,7 @@
 \alias{Predict}
 \title{The Prediction Function of \code{GPM} Package}
 \usage{
-Predict(XF, Model, MSE_on = 0, YgF_on = 0, grad_dim = rep(1,
-  ncol(XF)))
+Predict(XF, Model, MSE_on = 0, YgF_on = 0, grad_dim = rep(1, ncol(XF)))
 }
 \arguments{
 \item{XF}{Matrix containing the locations (settings) where the predictions are desired. The rows and columns of \code{XF} denote individual observation settings and input dimension, respectively.}
@@ -14,7 +13,7 @@ Predict(XF, Model, MSE_on = 0, YgF_on = 0, grad_dim = rep(1,
 
 \item{YgF_on}{Flag (a scalar) indicating whether the gradient(s) of the response(s) are desired. Set to a non-zero value to calculate the gradient(s). See \code{note} below.}
 
-\item{grad_dim}{A binary vector of length \code{ncol(XF)}. The gradient of the response(s) will be calculated along the dimensions where the corresponding element of \code{grad_dim} is \code{1}. \code{grad_dim} is ignored if \code{YgF_on==0}.}
+\item{grad_dim}{A binary vector of length \code{ncol(XF)}. The gradient of the response(s) will be calculated along the dimensions where the corresponding element of \code{grad_dim} is \code{1}. \code{grad_dim} is ignored if \code{YgF_on == 0}.}
 }
 \value{
 Output A list containing the following components:
@@ -29,17 +28,17 @@ Predicts the reponse(s), associated prediction uncertainties, and gradient(s) of
 }
 \note{
 \enumerate{
-\item The gradient(s) can be calculated if \code{CorrType='G'} or \code{CorrType='LBG'}. If \code{CorrType='PE'} or \code{CorrType='LB'}, the gradient(s) can only be calculated if \code{Power=2} and \code{Gamma=1}, respectively.
+\item The gradient(s) can be calculated if \code{CorrType='G'} or \code{CorrType='LBG'}. If \code{CorrType='PE'} or \code{CorrType='LB'}, the gradient(s) can only be calculated if \code{Power = 2} and \code{Gamma = 1}, respectively.
 \item For efficiency, make sure the inputs are vecotrized and then passed to \code{\link[GPM]{Predict}}. Avoid passing inputs individually in a \code{for} loop.
 }
 }
 \examples{
-# see the examples in the fitting function.
+# See the examples in the fitting function.
 }
 \references{
 \enumerate{
-\item Bostanabad, R., Kearney, T., Tao, S., Apley, D. W. & Chen, W. Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, doi:10.1002/nme.5751.
-\item M. Plumlee, D.W. Apley (2016). Lifted Brownian kriging models, Technometrics.
+\item Bostanabad, R., Kearney, T., Tao, S., Apley, D. W. & Chen, W. (2018) Leveraging the nugget parameter for efficient Gaussian process modeling. Int J Numer Meth Eng, 114, 501-516.
+\item Plumlee, M. & Apley, D. W. (2017) Lifted Brownian kriging models. Technometrics, 59, 165-177.
 }
 }
 \seealso{

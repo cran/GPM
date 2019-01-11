@@ -1,8 +1,8 @@
-\name{NLogL}
-\alias{NLogL}
-\title{The Function for calculating the Negative Log-Likelehood in \code{GPM} Package}
+\name{Auxil}
+\alias{Auxil}
+\title{An auxiliary function used in calculating the negative log-likelehood and its gradient}
 \usage{
-NLogL(Omega, X, Y, CorrType, MinEig, Fn, n, dy)
+Auxil(Omega, X, Y, CorrType, MinEig, Fn, n, dy)
 }
 \arguments{
 \item{Omega}{The vector storing all the hyperparameters of the correlation function. The length of \code{Omega} depends on the \code{CorrType}. See \code{reference 1}.}
@@ -22,13 +22,21 @@ NLogL(Omega, X, Y, CorrType, MinEig, Fn, n, dy)
 \item{dy}{Number of responses, \code{ncol(Y)}.}
 }
 \value{
-nlogl The negative log-likelihood (excluding all the constant terms). See the \code{references}.
+ALL A list containing the following components (based on \code{CorrType}, some other parameters are also stored in \code{ALL}):
+\itemize{
+\item{\code{R}} {The correlation matrix whose smallest eigen value is \code{>= MinEig}.}
+\item{\code{L}} {Cholesky decomposition of \code{R}.}
+\item{\code{Raw_MinEig}} {The smallest eigen value of \code{R} before adding \code{Nug_opt}.}
+\item{\code{Nug_opt}} {The added nugger to \code{R}.}
+\item{\code{B}}
+}
+
 }
 \description{
-Calculates the negative log-likelihood (excluding all the constant terms) as described in \code{reference 1}.
+Calculates some auxiliary paramters to obtain the negative log-likelehood and its gradient.
 }
 \details{
-\code{\link[GPM]{Fit}} calls this function with \emph{scaled} \code{X} and \code{Y}. That is, when the user fits a GP model by calling \code{Fit(X, Y)}, \code{X} and \code{Y} are mapped to the \code{[0, 1]} region and then passed to this function.
+Since \code{Auxil} is shared between \code{NLogL} and \code{NLogL_G} during optimization, ideally it should be run only once (e.g., via memoisation). Such an implementation is left for future editions.
 }
 \examples{
 # see the examples in the fitting function.

@@ -1,8 +1,8 @@
-\name{NLogL}
-\alias{NLogL}
-\title{The Function for calculating the Negative Log-Likelehood in \code{GPM} Package}
+\name{NLogL_G}
+\alias{NLogL_G}
+\title{The Function for calculating the gradient of Negative Log-Likelehood in \code{GPM} Package}
 \usage{
-NLogL(Omega, X, Y, CorrType, MinEig, Fn, n, dy)
+NLogL_G(Omega, X, Y, CorrType, MinEig, Fn, n, dy)
 }
 \arguments{
 \item{Omega}{The vector storing all the hyperparameters of the correlation function. The length of \code{Omega} depends on the \code{CorrType}. See \code{reference 1}.}
@@ -22,17 +22,13 @@ NLogL(Omega, X, Y, CorrType, MinEig, Fn, n, dy)
 \item{dy}{Number of responses, \code{ncol(Y)}.}
 }
 \value{
-nlogl The negative log-likelihood (excluding all the constant terms). See the \code{references}.
+NLogL_G The gradient of negative log-likelihood wrt \code{Omega}. See the \code{references}.
 }
 \description{
-Calculates the negative log-likelihood (excluding all the constant terms) as described in \code{reference 1}.
+Calculates the gradient of negative log-likelihood wrt \code{Omega}.
 }
-\details{
-\code{\link[GPM]{Fit}} calls this function with \emph{scaled} \code{X} and \code{Y}. That is, when the user fits a GP model by calling \code{Fit(X, Y)}, \code{X} and \code{Y} are mapped to the \code{[0, 1]} region and then passed to this function.
-}
-\examples{
-# see the examples in the fitting function.
-}
+\details{This function is used in \code{\link[GPM]{Fit}} if \code{AnaGr != 0}.}
+\examples{# see the examples in the fitting function.}
 \references{
 \enumerate{
 \item Bostanabad, R., Kearney, T., Tao, S., Apley, D. W. & Chen, W. (2018) Leveraging the nugget parameter for efficient Gaussian process modeling. Int J Numer Meth Eng, 114, 501-516.

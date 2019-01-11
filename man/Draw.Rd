@@ -17,7 +17,7 @@ Draw(Model, Plot_wrt, LB = NULL, UB = NULL, Values = NULL,
 
 \item{Response_ID}{A positive integer indicating the response that should be plotted if \code{Model} is multi-response.}
 
-\item{res}{A positive integer indicating the number of points used in plotting. Higher values will result into smoother plots.}
+\item{res}{A positive integer indicating the number of points used in plotting. Higher values will result in smoother plots.}
 
 \item{X1Label}{A string for the label of axis \code{1}.}
 
@@ -33,12 +33,12 @@ Draw(Model, Plot_wrt, LB = NULL, UB = NULL, Values = NULL,
 Plots the predicted response along with the assocaited uncertainty via the GP model fitted by \code{\link[GPM]{Fit}}. Accepts multi-input and multi-output models. See \code{Arguments} for more details on the options.
 }
 \examples{
-# see the examples in the fitting function.
+# See the examples in the fitting function.
 }
 \references{
 \enumerate{
-\item Bostanabad, R., Kearney, T., Tao, S., Apley, D. W. & Chen, W. Leveraging the nugget parameter for efficient Gaussian process modeling. International Journal for Numerical Methods in Engineering, doi:10.1002/nme.5751.
-\item M. Plumlee, D.W. Apley (2016). Lifted Brownian kriging models, Technometrics.
+\item Bostanabad, R., Kearney, T., Tao, S., Apley, D. W. & Chen, W. (2018) Leveraging the nugget parameter for efficient Gaussian process modeling. Int J Numer Meth Eng, 114, 501-516.
+\item Plumlee, M. & Apley, D. W. (2017) Lifted Brownian kriging models. Technometrics, 59, 165-177.
 }
 }
 \seealso{
